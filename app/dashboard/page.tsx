@@ -104,7 +104,7 @@ export default function Dashboard() {
     } else {
       alert("Prediction failed: " + data.message);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     setPredictionResult({
       prediction: "Error during prediction",
       confidence: 0,
