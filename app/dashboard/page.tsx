@@ -4,7 +4,6 @@ import { Container } from "@/components/ui/container";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import {
@@ -14,12 +13,17 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Sparkles, MessageSquare, ArrowRight } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import ConfirmModal from "@/components/ConfirmModal";
 import LoadingModal from "@/components/loadingModal";
 import PredictionResultModal from "@/components/predictionResult";
+
+type PredictionResult = {
+  prediction: string;
+  confidence: number;
+};
 
 export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -27,7 +31,7 @@ export default function Dashboard() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [resultModalOpen, setResultModalOpen] = useState(false);
-  const [predictionResult, setPredictionResult] = useState<string | null>(null);
+  const [predictionResult, setPredictionResult] = useState<PredictionResult | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -75,45 +79,43 @@ export default function Dashboard() {
     setFile(null);
   };
 
- const handlePredict = async () => {
-  if (!file) {
-    alert("Please upload an OCT scan for prediction");
-    return;
-  }
+  const handlePredict = async () => {
+    if (!file) {
+      alert("Please upload an OCT scan for prediction");
+      return;
+    }
 
-  setLoading(true);
-  try {
-    const formData = new FormData();
-    formData.append("image", file);
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
 
-    const res = await fetch("http://52.91.239.151:8000/api/predict-scan/", {
-      method: "POST",
-      body: formData,
-    });
+      const res = await fetch("http://52.91.239.151:8000/api/predict-scan/", {
+        method: "POST",
+        body: formData,
+      });
 
-    const data = await res.json();
-    if (res.ok) {
-      console.log(data);
+      const data = await res.json();
+      if (res.ok) {
+        console.log(data);
 
-      // ✅ Ensure correct shape
+        setPredictionResult({
+          prediction: data.prediction,
+          confidence: Number(data.confidence) || 0,
+        });
+        setResultModalOpen(true);
+      } else {
+        alert("Prediction failed: " + data.message);
+      }
+    } catch (error: unknown) {
       setPredictionResult({
-        prediction: data.prediction,
-        confidence: Number(data.confidence) || 0,
+        prediction: "Error during prediction",
+        confidence: 0,
       });
       setResultModalOpen(true);
-    } else {
-      alert("Prediction failed: " + data.message);
     }
-  } catch (error: unknown) {
-    setPredictionResult({
-      prediction: "Error during prediction",
-      confidence: 0,
-    });
-    setResultModalOpen(true);
-  }
-  setLoading(false);
-};
-
+    setLoading(false);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -156,7 +158,6 @@ export default function Dashboard() {
                     </p>
                   </div>
                 </div>
-                 {/* Prediction History */}
               </div>
             </CardContent>
           </Card>
